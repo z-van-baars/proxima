@@ -11,15 +11,5 @@ class Tile(object):
         self.is_occupied = False
         self.is_blocked = False
         self.entity = None
-
-    def set_occupied(self, entity):
-        self.is_occupied = True
-        self.entity = entity
-
-    def set_vacant(self):
-        self.is_occupied = False
-        self.is_blocked = False
-        self.entity = None
-
-    def set_blocked(self):
-        self.is_blocked = True
+        self.scenery = None
+        self.item = None
