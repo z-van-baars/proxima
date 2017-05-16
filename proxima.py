@@ -60,10 +60,11 @@ def main():
         room_1.add_wall(0, ii)
     for ii in range(1, 39):
         room_1.add_wall(39, ii)
+    room_1.generate_random_walls(40)
     room_1.generate_random_coins(4)
     room_1.update_static_display_layer()
 
-    player = entity.DynamicEntity(40, 40, 20, 20, colors.red, 3)
+    player = entity.DynamicEntity(40, 40, 19, 19, colors.red, 3)
     player.id_tag = "Player"
     room_1.dynamic_entities["Player"] = player
 

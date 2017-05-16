@@ -77,10 +77,11 @@ class DynamicEntity(Entity):
         tile.entity = self
 
     def block_check(self, modified_coordinates, tiles):
-        top_left = int(modified_coordinates[0] / 20), int(modified_coordinates[1] / 20)
-        top_right = (int((modified_coordinates[0] + 20) / 20), int(modified_coordinates[1] / 20))
-        bottom_left = (int(modified_coordinates[0] / 20), int((modified_coordinates[1] + 20) / 20))
-        bottom_right = (int((modified_coordinates[0] + 20) / 20), int((modified_coordinates[1] + 20) / 20))
+        tile_width = 20
+        top_left = int(modified_coordinates[0] / tile_width), int(modified_coordinates[1] / tile_width)
+        top_right = (int((modified_coordinates[0] + self.width) / tile_width), int(modified_coordinates[1] / tile_width))
+        bottom_left = (int(modified_coordinates[0] / tile_width), int((modified_coordinates[1] + self.width) / tile_width))
+        bottom_right = (int((modified_coordinates[0] + self.width) / tile_width), int((modified_coordinates[1] + self.width) / tile_width))
 
         if tiles[top_left].is_blocked:
             return True
@@ -93,6 +94,7 @@ class DynamicEntity(Entity):
         return False
 
     def move(self, tiles):
+        tile_width = 20
 
         current_tile = self.current_tile
         if self.x_speed == 0 and self.y_speed == 0:
@@ -103,26 +105,26 @@ class DynamicEntity(Entity):
                 self.pos_x += self.x_speed
             else:
                 if self.x_speed > 0:
-                    self.pos_x = int(modified_x / 20) * 20 - 1
+                    self.pos_x = int(modified_x / tile_width) * tile_width
                 elif self.x_speed < 0:
-                    self.pos_x = int(modified_x / 20) * 20 + 20
+                    self.pos_x = (int(modified_x / tile_width) + 1) * tile_width
         if self.y_speed != 0:
             modified_y = self.pos_y + self.y_speed
             if not self.block_check((self.pos_x, modified_y), tiles):
                 self.pos_y += self.y_speed
             else:
                 if self.y_speed > 0:
-                    self.pos_y = int(modified_y / 20) * 20 - 1
+                    self.pos_y = int(modified_y / tile_width) * tile_width
                 elif self.y_speed < 0:
-                    self.pos_y = int(modified_y / 20) * 20 + 20
+                    self.pos_y = (int(modified_y / tile_width) + 1) * tile_width
         if not utilities.check_within(self.pos_x,
                                       self.pos_y,
-                                      current_tile[0] * 20,
-                                      current_tile[1] * 20,
-                                      current_tile[0] * 20 + 20,
-                                      current_tile[1] * 20 + 20):
+                                      current_tile[0] * tile_width,
+                                      current_tile[1] * tile_width,
+                                      (current_tile[0] + 1) * tile_width,
+                                      (current_tile[1] + 1) * tile_width):
             self.tile_checkout(tiles[current_tile])
-            rounded_coordinates = (int(self.pos_x / 20), int(self.pos_y / 20))
+            rounded_coordinates = (int(self.pos_x / tile_width), int(self.pos_y / tile_width))
             self.current_tile = rounded_coordinates
             self.tile_checkin(tiles[rounded_coordinates])
         self.rect.x = self.pos_x
