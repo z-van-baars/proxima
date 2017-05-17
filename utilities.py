@@ -36,7 +36,34 @@ def get_random_coordinates(x_lower, x_upper, y_lower, y_upper):
     return (x_position, y_position)
 
 
-def get_adjacent_tiles(room, x, y):
+def corners(pos, width, height):
+    top_left = pixel_to_tile((pos))
+    top_right = pixel_to_tile((pos[0] + width, pos[1]))
+    bottom_left = pixel_to_tile((pos[0], pos[1] + height))
+    bottom_right = pixel_to_tile((pos[0] + width, pos[1] + height))
+    return top_left, top_right, bottom_left, bottom_right
+
+
+def pixel_to_tile(pixel_coordinates):
+    tile_width = 20
+    tile_height = 20
+    return (math.floor(pixel_coordinates[0] / tile_width), math.floor(pixel_coordinates[1] / tile_height))
+
+
+def get_room_neighbors(width, height, x, y):
+    potential_neighbors = [(x, y - 1),
+                           (x - 1, y),
+                           (x + 1, y),
+                           (x, y + 1)]
+    valid_neighbors = set()
+    for each in potential_neighbors:
+        if not each[0] < 0 and not each[1] < 0:
+            if not each[0] > width - 1 and not each[1] > height - 1:
+                valid_neighbors.add(each)
+    return valid_neighbors
+
+
+def get_adjacent_tiles(width, height, x, y):
     potential_neighbors = [(x - 1, y - 1),
                            (x, y - 1),
                            (x + 1, y - 1),
@@ -49,6 +76,6 @@ def get_adjacent_tiles(room, x, y):
     valid_neighbors = set()
     for each in potential_neighbors:
         if not each[0] < 0 and not each[1] < 0:
-            if not each[0] > room.x_tiles - 1 and not each[1] > room.y_tiles - 1:
+            if not each[0] > width - 1 and not each[1] > height - 1:
                 valid_neighbors.add(each)
     return valid_neighbors

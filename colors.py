@@ -9,4 +9,4 @@ blue_grey = (180, 210, 217)
 purple = (255, 0, 255)
 gold = (255, 187, 0)
 key = (255, 0, 128)
-
+background_blue = (12, 12, 20)
