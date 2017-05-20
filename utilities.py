@@ -63,6 +63,32 @@ def get_room_neighbors(width, height, x, y):
     return valid_neighbors
 
 
+def modify_tile_group(group, vector):
+    new_group = []
+    for each in group:
+        new_tile = (each[0] + vector[0], each[1] + vector[1])
+        new_group.append(new_tile)
+    return new_group
+
+
+def find_room_permutations(origin, width, height, max_factor):
+    permuations = []
+    for x in range(width):
+        if (width + x / height - x) / max_factor:
+            permuations.append((width + x, height - x))
+            permuations.append((width - x, height + x))
+    return permuations
+
+def tiles_in_range(x, y, width, height):
+    x_radius = math.floor(width / 2)
+    y_radius = math.floor(height / 2)
+    neighbors = []
+    for yy in range(y - y_radius, y + y_radius + 1):
+        for xx in range(x - x_radius, x + x_radius + 1):
+            neighbors.append((xx, yy))
+    return neighbors
+
+
 def get_adjacent_tiles(width, height, x, y):
     potential_neighbors = [(x - 1, y - 1),
                            (x, y - 1),
