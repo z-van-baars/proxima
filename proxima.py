@@ -148,7 +148,7 @@ def dungeon_generation_test():
             gen1_tunnelers = gen2_tunnelers
             gen2_tunnelers = []
             for each in gen1_roomies:
-                each.set_room_to_step(random_dungeon.cells)
+                each.draw_room(random_dungeon.cells)
                 if not each.active:
                     each.unmark_origin(random_dungeon.cells)
             gen1_roomies = []

@@ -50,6 +50,15 @@ def pixel_to_tile(pixel_coordinates):
     return (math.floor(pixel_coordinates[0] / tile_width), math.floor(pixel_coordinates[1] / tile_height))
 
 
+def flip_vector(old_vector):
+    """Returns a list containing a pair of vectors perpendicular to provided vector"""
+    vectors = {(0, 1): [(1, 0), (-1, 0)],
+               (1, 0): [(0, 1), (0, -1)],
+               (0, -1): [(1, 0), (-1, 0)],
+               (-1, 0): [(0, 1), (0, -1)]}
+    return vectors[old_vector]
+
+
 def get_room_neighbors(width, height, x, y):
     potential_neighbors = [(x, y - 1),
                            (x - 1, y),
@@ -88,6 +97,13 @@ def tiles_in_range(x, y, width, height):
             neighbors.append((xx, yy))
     return neighbors
 
+
+def tiles_from_top_left(x, y, width, height):
+    tile_group = []
+    for yy in range(y, y + height + 1):
+        for xx in range(x, x + width + 1):
+            tile_group.append((xx, yy))
+    return tile_group
 
 def get_adjacent_tiles(width, height, x, y):
     potential_neighbors = [(x - 1, y - 1),
