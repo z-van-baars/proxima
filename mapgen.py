@@ -1,6 +1,3 @@
-import pygame
-import tile
-import colors
 import utilities
 import math
 import random
@@ -33,20 +30,41 @@ def buffer_from_room(room_tiles):
     return room_buffer_footprint
 
 
+def cardinal_neighbors(pos, cells):
+    width = len(cells[0]) - 1
+    height = len(cells) - 1
+    x = pos[0]
+    y = pos[1]
+    neighbors = []
+    neighbors.append((x - 1, y))  # to the left
+    neighbors.append((x + 1, y))  # to the right
+    neighbors.append((x, y - 1))  # above
+    neighbors.append((x, y + 1))  # below
+    valid_neighbors = []
+    for each in neighbors:
+        xx = each[0]
+        yy = each[1]
+        if all([xx >= 0,
+                xx <= width,
+                yy >= 0,
+                yy <= height]):  # check to see if any neighbor is outside the map
+            valid_neighbors.append(each)
+    return valid_neighbors
+
+
 class Tunneler(object):
-    def __init__(self, start_x, start_y, corr_width, change_dir_prob, roomie_spawn_prob, vector):
+    def __init__(self, start_x, start_y, corr_width, vector, max_child_width):
         self.pos_x = start_x
         self.pos_y = start_y
         self.id_tag = utilities.generate_id_tag()
-        self.corr_width = corr_width
-        self.change_dir_prob = change_dir_prob
-        self.roomie_spawn_prob = roomie_spawn_prob
+        self.corr_width = max(1, corr_width)
+        self.max_child_width = max_child_width
         self.vector = vector
-        self.last_step, self.last_step_buffer = self.set_start_tiles(start_x, start_y, vector)
+        self.last_step = self.set_start_tiles(start_x, start_y, vector)
         self.active = True
         self.action_timer = 0
         self.reset_action_timer()
-        self.lifespan = (corr_width * 40)
+        self.lifespan = (self.corr_width * 40)
 
     def __lt__(self, other):
         return False
@@ -55,22 +73,19 @@ class Tunneler(object):
         self.active = False
 
     def reset_action_timer(self):
-        self.action_timer = (1 + self.corr_width ** 2) * 2
+        self.action_timer = (1 + self.corr_width * 3)
 
     def set_start_tiles(self, start_x, start_y, vector):
         first_step = []
-        first_step_buffer = []
         if vector == (0, 1) or vector == (0, -1):
-            for xx in range(start_x - math.floor(self.corr_width / 2), start_x + math.floor(self.corr_width / 2) + 1):
+            for xx in range(start_x - math.floor(self.corr_width / 2),
+                            start_x + math.floor(self.corr_width / 2) + 1):
                 first_step.append((xx, start_y))
-            for xx in range(start_x - math.floor((self.corr_width + 1) / 2), start_x + math.floor((self.corr_width + 1) / 2) + 1):
-                first_step_buffer.append((xx, start_y))
         elif vector == (1, 0) or vector == (-1, 0):
-            for yy in range(start_y - math.floor(self.corr_width / 2), start_y + math.floor(self.corr_width / 2) + 1):
+            for yy in range(start_y - math.floor(self.corr_width / 2),
+                            start_y + math.floor(self.corr_width / 2) + 1):
                 first_step.append((start_x, yy))
-            for yy in range(start_y - math.floor((self.corr_width + 1) / 2), start_y + math.floor((self.corr_width + 1) / 2) + 1):
-                first_step_buffer.append((start_x, yy))
-        return first_step, first_step_buffer
+        return first_step
 
     def spawn_check(self, cells):
         chance_to_spawn = random.randint(1, 100)
@@ -81,7 +96,10 @@ class Tunneler(object):
     def spawn_roomie(self, cells):
         child_vector = self.roll_new_vector()
         child_x, child_y = self.get_child_start(self.vector, child_vector)
-        new_roomie = Roomie(child_x, child_y, 1 + self.corr_width ** 2, child_vector)
+        new_roomie = Roomie(child_x,
+                            child_y,
+                            1 + self.corr_width ** 2,  # room size based on tunnel size
+                            child_vector)
         if new_roomie.bounds_check([new_roomie.origin], cells):
             return None
         if new_roomie.occupation_check([new_roomie.origin], cells):
@@ -92,7 +110,13 @@ class Tunneler(object):
     def spawn_tunneler(self, cells):
         child_vector = self.roll_new_vector()
         child_x, child_y = self.get_child_start(self.vector, child_vector)
-        new_tunneler = Tunneler(child_x, child_y, random.randint(1, self.corr_width), 10, 0, child_vector)
+        child_width = random.choice([self.corr_width - 2,
+                                     self.max_child_width])
+        new_tunneler = Tunneler(child_x,
+                                child_y,
+                                child_width,
+                                child_vector,
+                                self.corr_width + 2)
         if new_tunneler.bounds_check(new_tunneler.last_step, cells):
             return None
         if new_tunneler.occupation_check(new_tunneler.last_step, cells):
@@ -101,21 +125,19 @@ class Tunneler(object):
         return new_tunneler
 
     def get_child_start(self, parent_vector, child_vector):
-        child_x = self.pos_x - parent_vector[0] * math.floor(self.corr_width / 2)
-        child_y = self.pos_y - parent_vector[1] * math.floor(self.corr_width / 2)
+        child_x = self.pos_x - parent_vector[0] * (math.floor(self.corr_width / 2) + 1)
+        child_y = self.pos_y - parent_vector[1] * (math.floor(self.corr_width / 2) + 1)
         child_x += child_vector[0] * (math.floor(self.corr_width / 2) + 1)
         child_y += child_vector[1] * (math.floor(self.corr_width / 2) + 1)
         return child_x, child_y
 
     def mark_step(self, cells):
-        # for each in self.last_step_buffer:
-            # cells[each[1]][each[0]] = 5
         for each in self.last_step:
             cells[each[1]][each[0]] = 1
 
-    def vector_check(self, cells):
+    def vector_check(self, cells, turn_frequency):
         chance_to_change_vector = random.randint(0, 100)
-        if chance_to_change_vector < self.change_dir_prob - self.corr_width * 2:
+        if chance_to_change_vector < turn_frequency:
             self.reset_action_timer()
             old_vector = self.vector
             new_vector = self.roll_new_vector()
@@ -144,10 +166,11 @@ class Tunneler(object):
 
     def reset_last_step(self, cells, old_vector):
         self.pos_x -= old_vector[0] * math.floor(self.corr_width / 2)
-        self.pos_y -= old_vector[1] * math.floor(self.corr_width / 2)
-        self.pos_x += self.vector[0] * math.floor((self.corr_width - 1) / 2)
-        self.pos_y += self.vector[1] * math.floor((self.corr_width - 1) / 2)
-        self.last_step, self.last_step_buffer = self.set_start_tiles(self.pos_x, self.pos_y, self.vector)
+        self.pos_y -= old_vector[1] * math.floor(self.corr_width / 2)  # Back up the centerpoint
+
+        self.pos_x += self.vector[0] * math.floor(self.corr_width / 2)  # Move centerpoint ahead to the edge of the current tunnel
+        self.pos_y += self.vector[1] * math.floor(self.corr_width / 2)
+        self.last_step = self.set_start_tiles(self.pos_x, self.pos_y, self.vector)
 
     def bounds_check(self, step, cells):
         out_of_bounds = [False]
@@ -160,16 +183,15 @@ class Tunneler(object):
             return True
         return False
 
-    def occupation_check(self, step, cells):
+    def occupation_check(self, tile_group, cells):
         occupied_spaces = []
-        for each in step:
+        for each in tile_group:
             if any([cells[each[1]][each[0]] == 1,
                     cells[each[1]][each[0]] == 2,
                     cells[each[1]][each[0]] == 3,
                     cells[each[1]][each[0]] == 4,
                     cells[each[1]][each[0]] == 5]):
                 occupied_spaces.append(True)
-
         if any(occupied_spaces):
             return True
         return False
@@ -189,7 +211,6 @@ class Tunneler(object):
         vector = self.vector
         self.pos_x += vector[0]
         self.pos_y += vector[1]
-        next_step_buffer = utilities.modify_tile_group(self.last_step_buffer, vector)
         next_step = utilities.modify_tile_group(self.last_step, vector)
         if self.bounds_check(next_step, cells):
             self.deactivate()
@@ -201,7 +222,6 @@ class Tunneler(object):
             self.deactivate()
             return
 
-        self.last_step_buffer = next_step_buffer
         self.last_step = next_step
 
 
@@ -212,14 +232,39 @@ class Roomie(object):
         self.pos_x = x + vector[0]
         self.pos_y = y + vector[1]
         self.vector = vector
-        self.size = size
-        self.max_dimensions = size * 2 + 1
+        self.size = max(1, size)
+        self.max_dimensions = math.floor((size + 10) * 0.3)
         self.active = True
 
     def mark_origin(self, cells):
         cells[self.origin[1]][self.origin[0]] = 3
 
-    def unmark_origin(self, cells):
+    def remark_origin(self, cells):
+        neighboring_tiles = cardinal_neighbors(self.origin, cells)
+        occupied_spaces = []
+        for each in neighboring_tiles:
+            xx = each[0]
+            yy = each[1]
+            if any([cells[yy][xx] == 1,
+                    cells[yy][xx] == 4]):
+                opposite_x = self.origin[0] - (xx - self.origin[0])
+                opposite_y = self.origin[1] - (yy - self.origin[1])
+                opposite_tile = cells[opposite_y][opposite_x]
+                if any([opposite_tile == 1,
+                        opposite_tile == 4]):
+                    return
+
+        occupied_spaces = []
+        for each in neighboring_tiles:
+            xx = each[0]
+            yy = each[1]
+            if any([cells[yy][xx] == 5]):
+                occupied_spaces.append(True)
+
+        if len(occupied_spaces) > 1:
+            cells[self.origin[1]][self.origin[0]] = 5
+            return
+
         cells[self.origin[1]][self.origin[0]] = 0
 
     def deactivate(self):
@@ -249,7 +294,6 @@ class Roomie(object):
         return False
 
     def draw_room(self, cells):
-
         room_footprint = self.get_room_footprint(cells)
         if not room_footprint:
             self.deactivate()
@@ -287,7 +331,7 @@ class Roomie(object):
                     x = self.pos_x
                 elif self.vector == (-1, 0):
                     x = self.pos_x - each[1]
-                for yy in range(each[0]):
+                for yy in range(each[1]):
                     tiles_in_candidate = utilities.tiles_from_top_left(x,
                                                                        y + yy,
                                                                        each[0],

@@ -6,10 +6,9 @@ import mapgen
 import random
 
 
-screen_width = 800  # int(input("Width?\n"))
-screen_height = 800  # int(input("Height?\n"))
+screen_width = 1200  # int(input("Width?\n"))
+screen_height = 850  # int(input("Height?\n"))
 pygame.init()
-
 
 def mouse_down(event):
     pass
@@ -87,7 +86,7 @@ def main():
 #main()
 
 def dungeon_generation_test():
-    random_dungeon = dungeon.ProcDungeon(140)
+    random_dungeon = dungeon.ProcDungeon(180)
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode([screen_width, screen_height])
     start_xy = random_dungeon.set_start_point()
@@ -101,12 +100,17 @@ def dungeon_generation_test():
     elif start_xy[1] == random_dungeon.height - 1:
         vector = (0, -1)
     corridor_width = 3
-    first_tunneler = mapgen.Tunneler(start_xy[0], start_xy[1], corridor_width, 10, 0, vector)
+    first_tunneler = mapgen.Tunneler(start_xy[0], start_xy[1], corridor_width, vector, corridor_width + 2)
     random_dungeon.evaluated_tiles = random_dungeon.update_evaluated_tiles()
     random_dungeon.paint_evaluated_tiles(4)
     gen1_tunnelers = [first_tunneler]
     gen2_tunnelers = []
     gen1_roomies = []
+
+    tunnel_frequency = 60
+    roomie_frequency = 40
+    turn_frequency = 8
+
     print("Start....")
 
     while True:
@@ -124,9 +128,8 @@ def dungeon_generation_test():
                             if not column == 0:
                                 fill_count += 1
                     print("F: {0} / T: {1}".format(fill_count, total_count))
-                    random_dungeon = dungeon.ProcDungeon(140)
-                    clock = pygame.time.Clock()
-                    screen = pygame.display.set_mode([screen_width, screen_height])
+                    random_dungeon = dungeon.ProcDungeon(180)
+
                     start_xy = random_dungeon.set_start_point()
                     random_dungeon.cells[start_xy[1]][start_xy[0]] = 2
                     if start_xy[0] == 0:
@@ -138,7 +141,7 @@ def dungeon_generation_test():
                     elif start_xy[1] == random_dungeon.height - 1:
                         vector = (0, -1)
                     corridor_width = 3
-                    first_tunneler = mapgen.Tunneler(start_xy[0], start_xy[1], corridor_width, 10, 0, vector)
+                    first_tunneler = mapgen.Tunneler(start_xy[0], start_xy[1], corridor_width, vector, corridor_width + 2)
                     random_dungeon.evaluated_tiles = random_dungeon.update_evaluated_tiles()
                     random_dungeon.paint_evaluated_tiles(4)
                     gen1_tunnelers = [first_tunneler]
@@ -150,28 +153,28 @@ def dungeon_generation_test():
             for each in gen1_roomies:
                 each.draw_room(random_dungeon.cells)
                 if not each.active:
-                    each.unmark_origin(random_dungeon.cells)
+                    each.remark_origin(random_dungeon.cells)
             gen1_roomies = []
         else:
             active_tunnelers = []
             for each in gen1_tunnelers:
                 if each.action_timer > 0:
                     each.action_timer -= 1
-                each.lifespan -= 1
+                # each.lifespan -= 1
                 each.mark_step(random_dungeon.cells)
-                if each.action_timer == 0:
-                    each.vector_check(random_dungeon.cells)
-                each.tunnel(random_dungeon.cells)
+                if each.action_timer <= 0:
+                    each.vector_check(random_dungeon.cells, turn_frequency)
                 if each.active:
-                    if each.action_timer == 0:
+                    each.tunnel(random_dungeon.cells)
+                    if each.action_timer <= 0:
                         child = each.spawn_check(random_dungeon.cells)
                         if child:
-                            child_type = random.randint(0, 1)
-                            if child_type == 1:
+                            child_type = random.randint(1, tunnel_frequency + roomie_frequency)
+                            if child_type < tunnel_frequency:
                                 child = each.spawn_tunneler(random_dungeon.cells)
                                 if child:
                                     gen2_tunnelers.append(child)
-                            elif child_type == 0:
+                            else:
                                 child = each.spawn_roomie(random_dungeon.cells)
                                 if child:
                                     child.mark_origin(random_dungeon.cells)
@@ -181,10 +184,11 @@ def dungeon_generation_test():
             gen1_tunnelers = active_tunnelers
         random_dungeon.evaluated_tiles = random_dungeon.update_evaluated_tiles()
         random_dungeon.paint_evaluated_tiles(4)
+        screen.fill(colors.black)
         screen.blit(random_dungeon.structure_preview, [0, 0])
         pygame.display.flip()
         clock.tick(200)
 
 
-
+print(max(1, -10))
 dungeon_generation_test()
